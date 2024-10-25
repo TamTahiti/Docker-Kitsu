@@ -5,7 +5,7 @@ SWD=$(cd $(dirname $0);echo $PWD)
 
 function get_build_dependency() {
     echo "${CYAN}GET $1 build dependencies"
-    git clone -b $1 --single-branch --depth 1 https://gitlab.com/mathbou/docker-cgwire.git $SWD/$1 || :
+    git clone -b $1 --single-branch --depth 1 https://github.com/TamTahiti/Docker-Kitsu.git $SWD/$1 || :
 
     if $FORCE && $UPDATE; then
         git -C $SWD/$1 reset --hard || :
