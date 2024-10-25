@@ -17,6 +17,17 @@ function get_zou_version(){
     fi
 }
 
+function get_build_dependency() {
+    echo "${CYAN}GET $1 build dependencies"
+    git clone -b $1 --single-branch --depth 1 https://github.com/TamTahiti/Docker-Kitsu.git $SWD/$1 || :
+
+    if $FORCE && $UPDATE; then
+        git -C $SWD/$1 reset --hard || :
+    fi
+    if $UPDATE; then
+        git -C $SWD/$1 pull --rebase || :
+    fi
+}
 
 function check_dependencies(){
     failed=false
@@ -29,7 +40,8 @@ function check_dependencies(){
         failed=true
     fi
     if $failed; then
-        exit 1
+        get_build_dependency kitsu
+        get_build_dependency zou
     fi
 }
 
@@ -45,14 +57,13 @@ function build_images() {
     get_kitsu_version
     get_zou_version
     COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 \
-    dc -f docker-compose.yml -f docker-compose.build.yml build --force-rm --pull
+    dc -f docker-compose.yml
 }
 
 
 function compose_up() {
     echo "${YELLOW}START CONTAINERS"
     dc -f docker-compose.yml \
-                    -f docker-compose.build.yml \
                     up -d
 }
 
@@ -85,14 +96,8 @@ function init_zou() {
 source $SWD/common.sh
 echo "${BLUE}PARSE ARGS"
 
-BUILD=false
 DOWN=false
 case $1 in
-  local)
-    BUILD=true
-    echo "${CYAN}USE LOCAL BUILD"
-    shift
-    ;;
   down)
     DOWN=true
     echo "${CYAN}STOP INSTANCE"
@@ -100,12 +105,24 @@ case $1 in
     ;;
 esac
 
+UPDATE=false
+FORCE=false
 export ENV_FILE=$SWD/.env
 for i in "$@"; do
     case $i in
         -e=* | --env=*)
             export ENV_FILE="${i#*=}"
             echo "${CYAN}USE CUSTOM ENV FILE"
+            shift
+            ;;
+        --update)
+            UPDATE=true
+            echo "${CYAN}UPDATE DEPENDENCIES"
+            shift
+            ;;
+        --force)
+            FORCE=true
+            echo "${MAGENTA}/!\\ FORCE UPDATE /!\\ "
             shift
             ;;
         -h | --help)
@@ -115,12 +132,13 @@ for i in "$@"; do
         build.sh [subcommand] [options]
 
     Subcommand:
-
-        local                   Use local build of Kitsu and Zou containers
         down                    Compose Down the stack
 
     Options:
         -e, --env=ENV_FILE      Set custom env file. If not set ./env is used
+
+        --update            Pull dependencies if clone fails
+        --force             Combine with `--update`. Hard reset instead of pull.
 
         -h, --help              Show this help
                 "
@@ -133,6 +151,11 @@ for i in "$@"; do
     esac
 done
 
+if $FORCE && ! $UPDATE; then
+    echo "${ERROR}Force flag works with 'update' flag only"
+    exit 1
+fi
+
 
 # --------------------------------------------------------------
 # ---------------------------- MAIN ----------------------------
@@ -143,10 +166,7 @@ source_env ${ENV_FILE}
 compose_down
 
 if ! $DOWN ; then
-    if $BUILD ; then
-        build_images
-    fi
-
+    build_images
     compose_up
     init_zou
 fi
