@@ -17,7 +17,7 @@ x-env: &env
 x-backend-volumes: &backend_volumes
     volumes:
         - 'previews:${PREVIEW_FOLDER:-/opt/zou/previews}'
-        - 'tmp:${TMP_DIR:-/tmp/zou}'
+        - 'tmp:${TMP_DIR:-/opt/zou/tmp}'
 
 services:
     kitsu:
@@ -40,8 +40,8 @@ services:
         container_name: ${COMPOSE_PROJECT_NAME:?}-zou-app
         depends_on:
             - db
-            #- indexer
-        command: "gunicorn --error-logfile - --access-logfile - -w 3 -k gevent -b :5000 zou.app:app"
+            - indexer
+        command: "/init_zou.sh && /upgrade_zou.sh && gunicorn --error-logfile - --access-logfile - -w 3 -k gevent -b :5000 zou.app:app"
 
     zou-event:
         <<: [ *base, *env, *zou-build ]
@@ -61,7 +61,7 @@ services:
         image: postgres:${DB_VERSION:?}-alpine
         volumes:
             - 'db:/var/lib/postgresql/data'
-            - ./pg_ctl.conf:/etc/postgresql/${DB_VERSION:?}/main/pg_ctl.conf:ro
+            - ./db/pg_ctl.conf:/etc/postgresql/${DB_VERSION:?}/main/pg_ctl.conf:ro
         environment:
             - POSTGRES_PASSWORD=${DB_PASSWORD:?}
 
@@ -72,16 +72,16 @@ services:
         volumes:
             - 'redis:/data'
 
-#    indexer:
-#        <<: *base
-#        container_name: ${COMPOSE_PROJECT_NAME:?}-indexer
-#        image: getmeili/meilisearch:${INDEXER_VERSION:?}
-#        volumes:
-#            - 'indexer:/meili_data'
-#        environment:
-#            - MEILI_MASTER_KEY=${INDEXER_KEY:?}
-#        ports:
-#            - "7700:7700"
+    indexer:
+        <<: *base
+        container_name: ${COMPOSE_PROJECT_NAME:?}-indexer
+        image: getmeili/meilisearch:${INDEXER_VERSION:?}
+        volumes:
+            - 'indexer:/meili_data'
+        environment:
+            - MEILI_MASTER_KEY=${INDEXER_KEY:?}
+        ports:
+            - "7700:7700"
 
 volumes:
     db:
@@ -92,8 +92,8 @@ volumes:
         name: ${COMPOSE_PROJECT_NAME:?}-previews
     tmp:
         name: ${COMPOSE_PROJECT_NAME:?}-tmp
-#    indexer:
-#        name: ${COMPOSE_PROJECT_NAME:?}-indexer
+    indexer:
+        name: ${COMPOSE_PROJECT_NAME:?}-indexer
 
 networks:
     internal:

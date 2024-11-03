@@ -3,7 +3,7 @@
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
-#mkdir -p ${PREVIEW_FOLDER} ${TMP_DIR}
+mkdir -p ${PREVIEW_FOLDER} ${TMP_DIR}
 
 zou upgrade-db
 zou init-data

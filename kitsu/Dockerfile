@@ -1,17 +1,25 @@
-FROM nginx:alpine
+
+FROM nginx:alpine as buildstage
 
 # https://github.com/cgwire/kitsu/tags
 ARG KITSU_VERSION=0.19.71
 
 USER root
 
+# Set workdir
+WORKDIR /opt/kitsu
+
 RUN apk add --no-cache --virtual .build-deps git
 
-RUN mkdir -p /opt/kitsu/dist && \
-    wget -q -O /tmp/kitsu.tgz https://github.com/cgwire/kitsu/releases/download/v${KITSU_VERSION}/kitsu-${KITSU_VERSION}.tgz && \
-    tar xvzf /tmp/kitsu.tgz -C /opt/zou/kitsu && \
-    rm /tmp/kitsu.tgz
+# Retrieving kitsu built version
+RUN git clone -b "${KITSU_VERSION}-build" --single-branch --depth 1 https://github.com/cgwire/kitsu \
+    && apk --purge del .build-deps
 
-WORKDIR /opt/zou
 
+FROM nginx:alpine as squashstage
+
+# Copy dependencies from builder
+COPY --from=buildstage / /
+
+# Copy Nginx configuration
 COPY ./nginx.conf /etc/nginx/nginx.conf
