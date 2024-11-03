@@ -1,0 +1,90 @@
+x-base: &base
+  restart: unless-stopped
+  networks:
+    - internal
+
+x-env: &env
+  env_file:
+    - ${ENV_FILE:-.env}
+
+x-backend-volumes: &backend_volumes
+  volumes:
+    - 'previews:${PREVIEW_FOLDER:-/opt/zou/previews}'
+    - 'tmp:${TMP_DIR:-/tmp/zou}'
+
+services:
+  kitsu:
+    <<: [ *base, *env ]
+    container_name: ${COMPOSE_PROJECT_NAME:?}-kitsu
+    image: ghcr.io/emberlightvfx/kitsu-for-docker:latest
+    depends_on:
+      - zou-app
+      - zou-event
+      - zou-jobs
+    ports:
+      - '8800:80'
+
+  zou-app:
+    <<: [ *base, *env, *backend_volumes ]
+    container_name: ${COMPOSE_PROJECT_NAME:?}-zou-app
+    image: ghcr.io/emberlightvfx/zou-for-docker:latest
+    depends_on:
+      - db
+    command: >
+      sh -c "/init_zou.sh && /upgrade_zou.sh && gunicorn --error-logfile - --access-logfile - -w 3 -k gevent -b :5000 zou.app:app"
+
+  zou-event:
+    <<: [ *base, *env ]
+    container_name: ${COMPOSE_PROJECT_NAME:?}-zou-event
+    image: ghcr.io/emberlightvfx/zou-for-docker:latest
+    depends_on:
+      - redis
+    command: >
+      sh -c "gunicorn --error-logfile - --access-logfile - -w 1 -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -b :5001 zou.event_stream:app"
+
+  zou-jobs:
+    <<: [ *base, *env, *backend_volumes ]
+    container_name: ${COMPOSE_PROJECT_NAME:?}-zou-jobs
+    image: ghcr.io/emberlightvfx/zou-for-docker:latest
+    command: >
+      sh -c "rq worker -c zou.job_settings"
+
+  meilisearch:
+    <<: [ *base, *env ]
+    container_name: ${COMPOSE_PROJECT_NAME:?}-meilisearch
+    image: getmeili/meilisearch:${MEILI_VERSION:?}
+    volumes:
+      - 'meili_data:/meili_data'
+    ports:
+      - "7700:7700"
+
+  db:
+    <<: [ *base, *env ]
+    container_name: ${COMPOSE_PROJECT_NAME:?}-db-${DB_VERSION:?}
+    image: postgres:${DB_VERSION:?}-alpine
+    volumes:
+      - 'db:/var/lib/postgresql/data'
+      - ./db/pg_ctl.conf:/etc/postgresql/${DB_VERSION:?}/main/pg_ctl.conf:ro
+
+  redis:
+    <<: *base
+    container_name: ${COMPOSE_PROJECT_NAME:?}-redis
+    image: redis:alpine
+    volumes:
+      - 'redis:/data'
+
+volumes:
+  db:
+    name: ${COMPOSE_PROJECT_NAME:?}-db-${DB_VERSION:?}
+  redis:
+    name: ${COMPOSE_PROJECT_NAME:?}-redis
+  previews:
+    name: ${COMPOSE_PROJECT_NAME:?}-previews
+  tmp:
+    name: ${COMPOSE_PROJECT_NAME:?}-tmp
+  meili_data:
+    name: ${COMPOSE_PROJECT_NAME:?}-meili_data
+
+networks:
+  internal:
+    name: ${COMPOSE_PROJECT_NAME:?}-internal
