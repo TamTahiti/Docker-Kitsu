@@ -3,7 +3,8 @@ Docker kistu for testing purpose.
 
 About authors
 This project is based on Mathieu Bouzard's work as a base. You'll find his project at https://gitlab.com/mathbou/docker-cgwire/
-And on the work of EmberLightVF. You'll find his project at https://github.com/EmberLightVFX/Kitsu-for-Docker/
+
+And on the work of EmberLightVFX. You'll find his project at https://github.com/EmberLightVFX/Kitsu-for-Docker/
 
 
 Those Dockerfiles are based on CG Wire work, a company based in France. They help small to midsize CG studios to manage their production and build a pipeline efficiently.
