@@ -2,9 +2,6 @@
 
 **Docker compose for [Kitsu](https://kitsu.cg-wire.com/)**
 
-### *This readme contains info for both Kitsu-for-Docker and Zou-for-Docker as it's most likely you wish to run both*
-
-
 # Getting Started
 
 Check out the [docker-compose.yaml](docker-compose.yaml) file in the repo for the setup.
@@ -45,6 +42,7 @@ For that I highly recommend Mathieu Bouzard's version that you can find here: ht
 # About authors
 
 This project is based on Mathieu Bouzard's work as a base. You'll find his project at https://gitlab.com/mathbou/docker-cgwire/
+This project is based on EmberLightVFX work as a base. You'll find his project at https://github.com/EmberLightVFX/Kitsu-for-Docker
 
 Those Dockerfiles are based on CG Wire work, a company based in France. They help small
 to midsize CG studios to manage their production and build a pipeline
