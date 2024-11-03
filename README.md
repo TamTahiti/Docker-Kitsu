@@ -10,5 +10,3 @@ Those Dockerfiles are based on CG Wire work, a company based in France. They hel
 They apply software craftsmanship principles as much as possible. They love coding and consider that strong quality and good developer experience matter a lot. Through their diverse experiences, they allow studios to get better at doing software and focus more on artistic work.
 
 Visit cg-wire.com for more information.
-
-CGWire Logo
