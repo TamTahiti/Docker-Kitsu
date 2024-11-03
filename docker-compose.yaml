@@ -5,12 +5,12 @@ x-base: &base
 
 x-env: &env
   env_file:
-    - ${ENV_FILE:-./.env}
+    - ${ENV_FILE:-.env}
 
 x-backend-volumes: &backend_volumes
   volumes:
     - 'previews:${PREVIEW_FOLDER:-/opt/zou/previews}'
-    - 'tmp:${TMP_DIR:-/tmp/zou'
+    - 'tmp:${TMP_DIR:-/tmp/zou}'
 
 services:
   kitsu:
@@ -49,15 +49,22 @@ services:
     command: >
       sh -c "rq worker -c zou.job_settings"
 
+  meilisearch:
+    <<: [ *base, *env ]
+    container_name: ${COMPOSE_PROJECT_NAME:?}-meilisearch
+    image: getmeili/meilisearch:${MEILI_VERSION:?}
+    volumes:
+      - 'meili_data:/meili_data'
+    ports:
+      - "7700:7700"
+
   db:
-    <<: *base
+    <<: [ *base, *env ]
     container_name: ${COMPOSE_PROJECT_NAME:?}-db-${DB_VERSION:?}
     image: postgres:${DB_VERSION:?}-alpine
     volumes:
       - 'db:/var/lib/postgresql/data'
       - ./db/pg_ctl.conf:/etc/postgresql/${DB_VERSION:?}/main/pg_ctl.conf:ro
-    environment:
-      - POSTGRES_PASSWORD=${DB_PASSWORD:?}
 
   redis:
     <<: *base
@@ -65,17 +72,6 @@ services:
     image: redis:alpine
     volumes:
       - 'redis:/data'
-
-  indexer:
-    <<: *base
-    container_name: ${COMPOSE_PROJECT_NAME:?}-indexer
-    image: getmeili/meilisearch:${INDEXER_VERSION:?}
-    volumes:
-      - 'indexer:/meili_data'
-    environment:
-      - MEILI_MASTER_KEY=${INDEXER_KEY:?}
-    ports:
-      - "7700:7700"
 
 volumes:
   db:
@@ -86,8 +82,8 @@ volumes:
     name: ${COMPOSE_PROJECT_NAME:?}-previews
   tmp:
     name: ${COMPOSE_PROJECT_NAME:?}-tmp
-  indexer:
-    name: ${COMPOSE_PROJECT_NAME:?}-indexer
+  meili_data:
+    name: ${COMPOSE_PROJECT_NAME:?}-meili_data
 
 networks:
   internal:
